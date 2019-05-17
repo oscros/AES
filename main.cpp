@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 
-// ------ defining constants ------ 
+// ------ defining constants ------
 
 // According to kattis assignment
 // key always 16 bytes
@@ -10,7 +10,7 @@ static const int KEY_SIZE = 16;
 static const int PLAINTEXT_MAX_SIZE = (16 * 1000000);
 // According to the specification: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
 
-// The length of input block, output block and state is 128 bits, Block size (Nb) is therefore always 4 32 bit words (number of columns in the state) 
+// The length of input block, output block and state is 128 bits, Block size (Nb) is therefore always 4 32 bit words (number of columns in the state)
 static const int Nb = 4;
 // The length of the key (Nk) is always 128 bits, 4 32-bit words (number of columns in the key), for AES 128-bit
 static const int Nk = 4;
@@ -25,13 +25,11 @@ uint8_t *plaintext = new uint8_t[PLAINTEXT_MAX_SIZE];
 uint8_t state[Nb * 4];
 
 // The expanded key contains the cipher key itself and 10 round keys, a total of Nb*(Nr+1) words, each containing 4 bytes
-uint8_t * keySchedule = new uint8_t[4 * Nb*(Nr + 1)];
+uint8_t *keySchedule = new uint8_t[4 * Nb * (Nr + 1)];
 
 // The round constant word array. Only need to xor with the first byte in each word due to the other bytes are {00} and doesn't affect the result
 static const uint8_t rcon[10] = {
-    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
-};
-
+    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
 
 // sbox stored as constant global variable to be used when substituting bytes in subBytes()
 static const uint8_t sbox[256] = {
@@ -53,11 +51,22 @@ static const uint8_t sbox[256] = {
     0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
     0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16};
 
+static const uint8_t mixConstant[16] = {
+    0x02, 0x03, 0x01, 0x01,
+    0x01, 0x02, 0x03, 0x01,
+    0x01, 0x01, 0x02, 0x03,
+    0x03, 0x01, 0x01, 0x02};
+
 // Forward declare functions
 uint8_t *cipher(uint8_t *in);
 uint8_t *subWord(uint8_t *word);
 uint8_t *rotWord(uint8_t *word);
 void keyExpansion();
+
+void subBytes();
+void shiftRows();
+void mixColumns();
+void addRoundKey(int round);
 
 /**
  * Function that rotates a 4 byte word to the left once.
@@ -86,6 +95,9 @@ uint8_t *subWord(uint8_t *word)
     return temp;
 }
 
+/**
+ * Function that performs key expansion and generates key schedule containing the round keys
+ * */
 void keyExpansion()
 {
     uint8_t *temp = new uint8_t[4];
@@ -102,35 +114,119 @@ void keyExpansion()
         i++;
     }
     i = Nk;
-    while (i < Nb*(Nr + 1))
+    while (i < Nb * (Nr + 1))
     {
-        temp[0] = keySchedule[(i-1) * 4];
-        temp[1] = keySchedule[((i-1) * 4) + 1];
-        temp[2] = keySchedule[((i-1) * 4) + 2];
-        temp[3] = keySchedule[((i-1) * 4) + 3];
-        
-        std::cout << "temp[0]: " << std::hex << static_cast<int>(temp[0]) << std::endl;
-        std::cout << "temp[1]: " << std::hex << static_cast<int>(temp[1]) << std::endl;
-        std::cout << "temp[2]: " << std::hex << static_cast<int>(temp[2]) << std::endl;
-        std::cout << "temp[3]: " << std::hex << static_cast<int>(temp[3]) << std::endl; 
+        temp[0] = keySchedule[(i - 1) * 4];
+        temp[1] = keySchedule[((i - 1) * 4) + 1];
+        temp[2] = keySchedule[((i - 1) * 4) + 2];
+        temp[3] = keySchedule[((i - 1) * 4) + 3];
+
         if (i % Nk == 0)
         {
             // should perform subWord and rotword on the word
-
             temp = subWord(rotWord(temp));
-            // xor with "random constant word array" value. 
-            temp[0] = temp[0]  ^ rcon[i/Nk];
+            // xor with "random constant word array" value.
+            temp[0] = temp[0] ^ rcon[i / Nk - 1];
         }
 
         // xor temp with previous word and save as the new word
-        keySchedule[(i * 4)] = keySchedule[(i-1) * 4] ^ temp [0];
-        keySchedule[((i * 4)) + 1] = keySchedule[((i-1) * 4) + 1] ^ temp [1];
-        keySchedule[((i * 4)) + 2] = keySchedule[((i-1) * 4) + 2] ^ temp [2];
-        keySchedule[((i * 4)) + 3] = keySchedule[((i-1) * 4) + 3] ^ temp [3];
+        keySchedule[(i * 4)] = keySchedule[(i - Nk) * 4] ^ temp[0];
+        keySchedule[((i * 4)) + 1] = keySchedule[((i - Nk) * 4) + 1] ^ temp[1];
+        keySchedule[((i * 4)) + 2] = keySchedule[((i - Nk) * 4) + 2] ^ temp[2];
+        keySchedule[((i * 4)) + 3] = keySchedule[((i - Nk) * 4) + 3] ^ temp[3];
         i++;
     }
 }
-    
+
+/**
+ * Function that substitutes each byte in the state array according to the sbox
+ * */
+void subBytes()
+{
+    // for (size_t i = 0; i < 16; i++)
+    // {
+    //     std::cout << "state " << std::hex << static_cast<int>(state[i]) << std::endl;
+    // }
+    // std::cout << "--------------------------------------------------" << std::endl;
+
+    for (int i = 0; i < Nb * 4; i++)
+    {
+        state[i] = sbox[state[i]];
+    }
+    // std::cout << "--------------------------------------------------" << std::endl;
+    // for (size_t i = 0; i < 16; i++)
+    // {
+    //     std::cout << "state " << std::hex << static_cast<int>(state[i]) << std::endl;
+    // }
+}
+
+/**
+ * Function that shifts each row i steps, where i is the row rumber (0 <= i < 4)
+ * 
+ * */
+void shiftRows()
+{
+    // std::cout << "--------------------------------------------------" << std::endl;
+    // for (size_t i = 0; i < 4; i++)
+    // {
+    //     std::cout << std::hex << static_cast<int>(state[i * Nb]) << " " << static_cast<int>(state[(i * Nb) + 1]) << " " << static_cast<int>(state[(i * Nb) + 2]) << " " << static_cast<int>(state[(i * Nb) + 3]) << std::endl;
+    // }
+    for (int i = 1; i < Nb; i++)
+    {
+        uint8_t *temp = new uint8_t[4];
+        temp[0] = state[(i * Nb)];
+        temp[1] = state[(i * Nb) + 1];
+        temp[2] = state[(i * Nb) + 2];
+        temp[3] = state[(i * Nb) + 3];
+        state[(i * Nb)] = temp[i];
+        state[(i * Nb) + 1] = temp[(i + 1) % Nb];
+        state[(i * Nb) + 2] = temp[(i + 2) % Nb];
+        state[(i * Nb) + 3] = temp[(i + 3) % Nb];
+    }
+    // std::cout << "--------------------------------------------------" << std::endl;
+    // for (size_t i = 0; i < 4; i++)
+    // {
+    //     std::cout << std::hex << static_cast<int>(state[i * Nb]) << " " << static_cast<int>(state[(i * Nb) + 1]) << " " << static_cast<int>(state[(i * Nb) + 2]) << " " << static_cast<int>(state[(i * Nb) + 3]) << std::endl;
+    // }
+}
+
+/**
+ * Function that multiplies each column with mixConstant
+ * */
+void mixColumns()
+{
+    std::cout << "--------------------------------------------------" << std::endl;
+    for (size_t i = 0; i < 4; i++)
+    {
+        std::cout << std::hex << static_cast<int>(state[i * Nb]) << " " << static_cast<int>(state[(i * Nb) + 1]) << " " << static_cast<int>(state[(i * Nb) + 2]) << " " << static_cast<int>(state[(i * Nb) + 3]) << std::endl;
+    }
+    for (int i = 0; i < Nb; i++)
+    {
+        uint8_t *temp = new uint8_t[4];
+        temp[0] = state[(i)];
+        temp[1] = state[(i + (1 * Nb))];
+        temp[2] = state[(i + (2 * Nb))];
+        temp[3] = state[(i + (3 * Nb))];
+
+        for (int x = 0; x < Nb; x++)
+        {
+            uint8_t *temp_constant = new uint8_t[4];
+            temp_constant[0] = mixConstant[(x * Nb)];
+            temp_constant[1] = mixConstant[(x * Nb) + 1];
+            temp_constant[2] = mixConstant[(x * Nb) + 2];
+            temp_constant[3] = mixConstant[(x * Nb) + 3];
+            state[(i * Nb) + x] = temp[0] * temp_constant[0] + temp[1] * temp_constant[1] + temp[2] * temp_constant[2] + temp[3] * temp_constant[3];
+        }
+
+
+    }
+    std::cout << "--------------------------------------------------" << std::endl;
+    for (size_t i = 0; i < 4; i++)
+    {
+        std::cout << std::hex << static_cast<int>(state[i * Nb]) << " " << static_cast<int>(state[(i * Nb) + 1]) << " " << static_cast<int>(state[(i * Nb) + 2]) << " " << static_cast<int>(state[(i * Nb) + 3]) << std::endl;
+    }
+}
+
 uint8_t *cipher(uint8_t *in)
 {
     // copy plaintext to state variable
@@ -138,7 +234,19 @@ uint8_t *cipher(uint8_t *in)
     {
         state[i] = in[i];
     }
-
+    addRoundKey(1);
+    // add round key first time outside of loop
+    // addRoundKey(0);
+    // for (int i = 1; i < Nr-1; i++)
+    // {
+    //     subBytes();
+    //     shiftRows();
+    //     mixColumns();
+    //     addRoundKey(i);
+    // }
+    // subBytes();
+    // shiftRows();
+    // addRoundKey(Nr - 1);
     return state;
 }
 int main(int argc, char **argv)
@@ -184,9 +292,6 @@ int main(int argc, char **argv)
 
     std::cout << "performs key expansion" << std::endl;
     keyExpansion();
-    for (int i = 0; i < (4 * Nb*(Nr + 1)); i++)
-    {
-        std::cout << "keySchedule: " << std::hex << static_cast<int>(keySchedule[i]) << std::endl;
-    }
-    
+
+    cipher(plaintext);
 }
