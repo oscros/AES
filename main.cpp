@@ -1,15 +1,40 @@
 #include <iostream>
 #include <fstream>
 
-#define KEY_SIZE 16
-#define PLAINTEXT_MAX_SIZE (16 * 1000000)
-const int Nb = 4;
-const int Nk = 4;
-const int Nr = 10;
+// ------ defining constants ------ 
+
+// According to kattis assignment
+// key always 16 bytes
+static const int KEY_SIZE = 16;
+// plaintext maximum size is 16 * 10^6 bytes
+static const int PLAINTEXT_MAX_SIZE = (16 * 1000000);
+// According to the specification: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
+
+// The length of input block, output block and state is 128 bits, Block size (Nb) is therefore always 4 32 bit words (number of columns in the state) 
+static const int Nb = 4;
+// The length of the key (Nk) is always 128 bits, 4 32-bit words (number of columns in the key), for AES 128-bit
+static const int Nk = 4;
+// The number of rounds (Nr) is always 10 for AES 128-bit
+static const int Nr = 10;
+
+// Cipher key global variable
 uint8_t *key = new uint8_t[KEY_SIZE];
+// plaintext global variable
 uint8_t *plaintext = new uint8_t[PLAINTEXT_MAX_SIZE];
-uint8_t state[16][16];
-const uint8_t sbox[256] = {
+// state global matrix
+uint8_t state[Nb * 4];
+
+// The expanded key contains the cipher key itself and 10 round keys, a total of Nb*(Nr+1) words, each containing 4 bytes
+uint8_t * keySchedule = new uint8_t[4 * Nb*(Nr + 1)];
+
+// The round constant word array. Only need to xor with the first byte in each word due to the other bytes are {00} and doesn't affect the result
+static const uint8_t rcon[10] = {
+    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
+};
+
+
+// sbox stored as constant global variable to be used when substituting bytes in subBytes()
+static const uint8_t sbox[256] = {
     //0     1    2      3     4    5     6     7      8    9     A      B    C     D     E     F
     0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
     0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
@@ -28,11 +53,93 @@ const uint8_t sbox[256] = {
     0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
     0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16};
 
-    
-char *cipher(uint8_t *in)
+// Forward declare functions
+uint8_t *cipher(uint8_t *in);
+uint8_t *subWord(uint8_t *word);
+uint8_t *rotWord(uint8_t *word);
+void keyExpansion();
+
+/**
+ * Function that rotates a 4 byte word to the left once.
+ * */
+uint8_t *rotWord(uint8_t *word)
 {
-    char *out = "aasd";
-    return out;
+    uint8_t *temp = new uint8_t[4];
+    temp[0] = word[1];
+    temp[1] = word[2];
+    temp[2] = word[3];
+    temp[3] = word[0];
+    return temp;
+}
+
+/**
+ * Function that substitutes each byte in a 4 byte word according to the sbox
+ * */
+uint8_t *subWord(uint8_t *word)
+{
+    uint8_t *temp = new uint8_t[4];
+
+    for (int i = 0; i < 4; i++)
+    {
+        temp[i] = sbox[word[i]];
+    }
+    return temp;
+}
+
+void keyExpansion()
+{
+    uint8_t *temp = new uint8_t[4];
+
+    // first key in the keyschedule is the cipher key.
+    // i denotes the word
+    int i = 0;
+    while (i < Nk)
+    {
+        keySchedule[(i * 4)] = key[(i * 4)];
+        keySchedule[(i * 4) + 1] = key[(i * 4) + 1];
+        keySchedule[(i * 4) + 2] = key[(i * 4) + 2];
+        keySchedule[(i * 4) + 3] = key[(i * 4) + 3];
+        i++;
+    }
+    i = Nk;
+    while (i < Nb*(Nr + 1))
+    {
+        temp[0] = keySchedule[(i-1) * 4];
+        temp[1] = keySchedule[((i-1) * 4) + 1];
+        temp[2] = keySchedule[((i-1) * 4) + 2];
+        temp[3] = keySchedule[((i-1) * 4) + 3];
+        
+        std::cout << "temp[0]: " << std::hex << static_cast<int>(temp[0]) << std::endl;
+        std::cout << "temp[1]: " << std::hex << static_cast<int>(temp[1]) << std::endl;
+        std::cout << "temp[2]: " << std::hex << static_cast<int>(temp[2]) << std::endl;
+        std::cout << "temp[3]: " << std::hex << static_cast<int>(temp[3]) << std::endl; 
+        if (i % Nk == 0)
+        {
+            // should perform subWord and rotword on the word
+
+            temp = subWord(rotWord(temp));
+            // xor with "random constant word array" value. 
+            temp[0] = temp[0]  ^ rcon[i/Nk];
+        }
+
+        // xor temp with previous word and save as the new word
+        keySchedule[(i * 4)] = keySchedule[(i-1) * 4] ^ temp [0];
+        keySchedule[((i * 4)) + 1] = keySchedule[((i-1) * 4) + 1] ^ temp [1];
+        keySchedule[((i * 4)) + 2] = keySchedule[((i-1) * 4) + 2] ^ temp [2];
+        keySchedule[((i * 4)) + 3] = keySchedule[((i-1) * 4) + 3] ^ temp [3];
+        i++;
+    }
+}
+    
+uint8_t *cipher(uint8_t *in)
+{
+    // copy plaintext to state variable
+    for (int i = 0; i < Nb * 4; i++)
+    {
+        state[i] = in[i];
+    }
+
+    return state;
 }
 int main(int argc, char **argv)
 {
@@ -74,4 +181,12 @@ int main(int argc, char **argv)
         std::cout << std::hex << static_cast<int>(plaintext[i]) << " ";
     }
     std::cout << "\n-------------------------------------------------" << std::endl;
+
+    std::cout << "performs key expansion" << std::endl;
+    keyExpansion();
+    for (int i = 0; i < (4 * Nb*(Nr + 1)); i++)
+    {
+        std::cout << "keySchedule: " << std::hex << static_cast<int>(keySchedule[i]) << std::endl;
+    }
+    
 }
