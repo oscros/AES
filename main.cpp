@@ -126,7 +126,7 @@ void keyExpansion()
             // should perform subWord and rotword on the word
             temp = subWord(rotWord(temp));
             // xor with "random constant word array" value.
-            temp[0] = temp[0] ^ rcon[i / Nk - 1];
+            temp[0] = temp[0] ^ rcon[(i / Nk) - 1];
         }
 
         // xor temp with previous word and save as the new word
@@ -143,21 +143,23 @@ void keyExpansion()
  * */
 void subBytes()
 {
-    // for (size_t i = 0; i < 16; i++)
-    // {
-    //     std::cout << "state " << std::hex << static_cast<int>(state[i]) << std::endl;
-    // }
-    // std::cout << "--------------------------------------------------" << std::endl;
+    std::cout << "---------------------------- sub bytes ----------------------" << std::endl;
+
+    for (size_t i = 0; i < 16; i++)
+    {
+        std::cout << "state " << std::hex << static_cast<int>(state[i]) << std::endl;
+    }
 
     for (int i = 0; i < Nb * 4; i++)
     {
         state[i] = sbox[state[i]];
     }
-    // std::cout << "--------------------------------------------------" << std::endl;
-    // for (size_t i = 0; i < 16; i++)
-    // {
-    //     std::cout << "state " << std::hex << static_cast<int>(state[i]) << std::endl;
-    // }
+    std::cout << "--------------------------------------------------" << std::endl;
+    for (size_t i = 0; i < 16; i++)
+    {
+        std::cout << "state " << std::hex << static_cast<int>(state[i]) << std::endl;
+    }
+    std::cout << "---------------------------- /sub bytes ----------------------" << std::endl;
 }
 
 /**
@@ -166,11 +168,11 @@ void subBytes()
  * */
 void shiftRows()
 {
-    // std::cout << "--------------------------------------------------" << std::endl;
-    // for (size_t i = 0; i < 4; i++)
-    // {
-    //     std::cout << std::hex << static_cast<int>(state[i * Nb]) << " " << static_cast<int>(state[(i * Nb) + 1]) << " " << static_cast<int>(state[(i * Nb) + 2]) << " " << static_cast<int>(state[(i * Nb) + 3]) << std::endl;
-    // }
+    std::cout << "------------------------ shift rows --------------------------" << std::endl;
+    for (size_t i = 0; i < 4; i++)
+    {
+        std::cout << std::hex << static_cast<int>(state[i * Nb]) << " " << static_cast<int>(state[(i * Nb) + 1]) << " " << static_cast<int>(state[(i * Nb) + 2]) << " " << static_cast<int>(state[(i * Nb) + 3]) << std::endl;
+    }
     for (int i = 1; i < Nb; i++)
     {
         uint8_t *temp = new uint8_t[4];
@@ -183,19 +185,22 @@ void shiftRows()
         state[(i * Nb) + 2] = temp[(i + 2) % Nb];
         state[(i * Nb) + 3] = temp[(i + 3) % Nb];
     }
-    // std::cout << "--------------------------------------------------" << std::endl;
-    // for (size_t i = 0; i < 4; i++)
-    // {
-    //     std::cout << std::hex << static_cast<int>(state[i * Nb]) << " " << static_cast<int>(state[(i * Nb) + 1]) << " " << static_cast<int>(state[(i * Nb) + 2]) << " " << static_cast<int>(state[(i * Nb) + 3]) << std::endl;
-    // }
+    std::cout << "--------------------------------------------------" << std::endl;
+    for (size_t i = 0; i < 4; i++)
+    {
+        std::cout << std::hex << static_cast<int>(state[i * Nb]) << " " << static_cast<int>(state[(i * Nb) + 1]) << " " << static_cast<int>(state[(i * Nb) + 2]) << " " << static_cast<int>(state[(i * Nb) + 3]) << std::endl;
+    }
+    std::cout << "------------------------ /shift rows --------------------------" << std::endl;
 }
 
 /**
  * Function that multiplies each column with mixConstant
+ * 
+ * may be wrong
  * */
 void mixColumns()
 {
-    std::cout << "--------------------------------------------------" << std::endl;
+    std::cout << "--------------------------- mix columns -----------------------" << std::endl;
     for (size_t i = 0; i < 4; i++)
     {
         std::cout << std::hex << static_cast<int>(state[i * Nb]) << " " << static_cast<int>(state[(i * Nb) + 1]) << " " << static_cast<int>(state[(i * Nb) + 2]) << " " << static_cast<int>(state[(i * Nb) + 3]) << std::endl;
@@ -215,16 +220,44 @@ void mixColumns()
             temp_constant[1] = mixConstant[(x * Nb) + 1];
             temp_constant[2] = mixConstant[(x * Nb) + 2];
             temp_constant[3] = mixConstant[(x * Nb) + 3];
-            state[(i * Nb) + x] = temp[0] * temp_constant[0] + temp[1] * temp_constant[1] + temp[2] * temp_constant[2] + temp[3] * temp_constant[3];
+            state[(x * Nb) + i] = temp[0] * temp_constant[0] + temp[1] * temp_constant[1] + temp[2] * temp_constant[2] + temp[3] * temp_constant[3];
         }
-
-
     }
     std::cout << "--------------------------------------------------" << std::endl;
     for (size_t i = 0; i < 4; i++)
     {
         std::cout << std::hex << static_cast<int>(state[i * Nb]) << " " << static_cast<int>(state[(i * Nb) + 1]) << " " << static_cast<int>(state[(i * Nb) + 2]) << " " << static_cast<int>(state[(i * Nb) + 3]) << std::endl;
     }
+    std::cout << "--------------------------- /mix columns -----------------------" << std::endl;
+}
+
+/**
+ * Function that xor the round key stored in keySchedule, with the state
+ * 
+ * */
+void addRoundKey(int round)
+{
+    std::cout << "-------------------------- addRoundKey ------------------------" << std::endl;
+    for (size_t i = 0; i < 4; i++)
+    {
+        std::cout << std::hex << static_cast<int>(state[i * Nb]) << " " << static_cast<int>(state[(i * Nb) + 1]) << " " << static_cast<int>(state[(i * Nb) + 2]) << " " << static_cast<int>(state[(i * Nb) + 3]) << std::endl;
+    }
+
+    std::cout << "--------------------------------------------------" << std::endl;
+    int state_incrementer = 0;
+    for (int i = round * 16; i < ((round + 1) * 16); i++)
+    {
+
+        std::cout << "xor: " << std::hex << static_cast<int>(state[state_incrementer]) << " with " << std::hex << static_cast<int>(keySchedule[i]) << " = " << std::hex << static_cast<int>(state[state_incrementer] ^ keySchedule[i]) << std::endl;
+        state[state_incrementer] = state[state_incrementer] ^ keySchedule[i];
+        state_incrementer++;
+    }
+    std::cout << "--------------------------------------------------" << std::endl;
+    for (size_t i = 0; i < 4; i++)
+    {
+        std::cout << std::hex << static_cast<int>(state[i * Nb]) << " " << static_cast<int>(state[(i * Nb) + 1]) << " " << static_cast<int>(state[(i * Nb) + 2]) << " " << static_cast<int>(state[(i * Nb) + 3]) << std::endl;
+    }
+    std::cout << "-------------------------- /addRoundKey ------------------------" << std::endl;
 }
 
 uint8_t *cipher(uint8_t *in)
@@ -234,19 +267,31 @@ uint8_t *cipher(uint8_t *in)
     {
         state[i] = in[i];
     }
-    addRoundKey(1);
+
+    // mixColumns();
+
     // add round key first time outside of loop
-    // addRoundKey(0);
-    // for (int i = 1; i < Nr-1; i++)
-    // {
-    //     subBytes();
-    //     shiftRows();
-    //     mixColumns();
-    //     addRoundKey(i);
-    // }
-    // subBytes();
-    // shiftRows();
-    // addRoundKey(Nr - 1);
+    addRoundKey(0);
+    // addRoundKey(1);
+    // addRoundKey(2);
+    // addRoundKey(3);
+    // addRoundKey(4);
+
+    for (int i = 1; i < Nr; i++)
+    {
+        // std::cout << "-------------------------- state before transformation " << i << " ------------------------" << std::endl;
+        // for (size_t i = 0; i < 4; i++)
+        // {
+        //     std::cout << std::hex << static_cast<int>(state[i * Nb]) << " " << static_cast<int>(state[(i * Nb) + 1]) << " " << static_cast<int>(state[(i * Nb) + 2]) << " " << static_cast<int>(state[(i * Nb) + 3]) << std::endl;
+        // }
+        subBytes();
+        shiftRows();
+        mixColumns();
+        addRoundKey(i);
+    }
+    subBytes();
+    shiftRows();
+    addRoundKey(Nr);
     return state;
 }
 int main(int argc, char **argv)
@@ -264,13 +309,24 @@ int main(int argc, char **argv)
         std::cout << "hello aes" << std::endl;
 
     uint8_t *data = (uint8_t *)buf;
-    for (int i = 0; i < KEY_SIZE; i++)
+    for (int i = 0; i < KEY_SIZE / 4; i++)
     {
-        key[i] = data[i];
+        key[i] = data[(i)*Nb];
+        key[i + (1 * Nb)] = data[(i * Nb) + 1];
+        key[i + (2 * Nb)] = data[(i * Nb) + 2];
+        key[i + (3 * Nb)] = data[(i * Nb) + 3];
     }
+    uint8_t *temp_plaintext = new uint8_t[16];
     for (int i = KEY_SIZE; i < size / sizeof(uint8_t); i++)
     {
-        plaintext[i - KEY_SIZE] = data[i];
+        temp_plaintext[i - KEY_SIZE] = data[i];
+    }
+    for (int i = 0; i < 4; i++)
+    {
+        plaintext[i] = temp_plaintext[(i)*Nb];
+        plaintext[i + (1 * Nb)] = temp_plaintext[(i * Nb) + 1];
+        plaintext[i + (2 * Nb)] = temp_plaintext[(i * Nb) + 2];
+        plaintext[i + (3 * Nb)] = temp_plaintext[(i * Nb) + 3];
     }
 
     std::cout << "-------------------------------------------------" << std::endl;
@@ -278,20 +334,59 @@ int main(int argc, char **argv)
     std::cout << "key: " << std::endl;
     for (int i = 0; i < KEY_SIZE; i++)
     {
-        std::cout << std::hex << static_cast<int>(key[i]) << " ";
+        std::cout << std::hex << static_cast<int>(data[i]) << " ";
     }
 
     std::cout << "\n-------------------------------------------------" << std::endl;
 
     std::cout << "plaintext: " << std::endl;
-    for (int i = 0; i < (size - KEY_SIZE) / sizeof(uint8_t); i++)
+    for (int i = KEY_SIZE; i < size / sizeof(uint8_t) / sizeof(uint8_t); i++)
     {
-        std::cout << std::hex << static_cast<int>(plaintext[i]) << " ";
+        std::cout << std::hex << static_cast<int>(data[i]) << " ";
+    }
+    std::cout << "\n-------------------------------------------------" << std::endl;
+
+    std::cout << "key: " << std::endl;
+    for (size_t i = 0; i < 4; i++)
+    {
+        std::cout << std::hex << static_cast<int>(key[i * Nb]) << " " << static_cast<int>(key[(i * Nb) + 1]) << " " << static_cast<int>(key[(i * Nb) + 2]) << " " << static_cast<int>(key[(i * Nb) + 3]) << std::endl;
+    }
+
+    std::cout << "\n-------------------------------------------------" << std::endl;
+
+    std::cout << "plaintext: " << std::endl;
+    for (size_t i = 0; i < 4; i++)
+    {
+        std::cout << std::hex << static_cast<int>(plaintext[i * Nb]) << " " << static_cast<int>(plaintext[(i * Nb) + 1]) << " " << static_cast<int>(plaintext[(i * Nb) + 2]) << " " << static_cast<int>(plaintext[(i * Nb) + 3]) << std::endl;
     }
     std::cout << "\n-------------------------------------------------" << std::endl;
 
     std::cout << "performs key expansion" << std::endl;
     keyExpansion();
 
-    cipher(plaintext);
+    std::cout << " KEY: " << std::endl;
+    for (int x = 0; x < 4; x++)
+    {
+        for (int i = 0; i < Nb * (Nr + 1); i++)
+        {
+            std::cout << std::hex << static_cast<int>(keySchedule[i + (Nb * (Nr + 1)) * x]) << " ";
+        }
+        std::cout << "\n";
+    }
+    std::cout << " KEY: " << std::endl;
+
+    for (int i = 0; i < 4*(Nb * (Nr + 1)); i++)
+    {
+        std::cout << std::hex << static_cast<int>(keySchedule[i]) << " ";
+    }
+
+    std::cout << "calulate cipher" << std::endl;
+    uint8_t *ciph = cipher(plaintext);
+    std::cout << "\n----------------------- cipher --------------------------" << std::endl;
+
+    for (int i = 0; i < 16; i++)
+    {
+        std::cout << std::hex << static_cast<int>(ciph[i]) << " ";
+    }
+    std::cout << "\n-------------------------------------------------" << std::endl;
 }
