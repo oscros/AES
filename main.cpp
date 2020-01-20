@@ -23,6 +23,14 @@ uint8_t *plaintext = new uint8_t[PLAINTEXT_SIZE];
 // state matrix
 uint8_t *state = new uint8_t[4 * Nb];
 
+// round constant word array (found here: https://en.wikipedia.org/wiki/AES_key_schedule)
+static const uint8_t *Rcon = new uint8_t[10] {
+    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36
+};
+
+static const uint8_t *S_box = new uint8_t[16 * 16] {};
+
+
 int main(int argc, char const *argv[])
 {
 
