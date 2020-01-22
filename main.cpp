@@ -50,14 +50,15 @@ static const uint8_t *S_box = new uint8_t[16 * 16]{
 uint8_t *key_schedule = new uint8_t[Nb * (Nr + 1)];
 
 // Rotate a word (column in the block)
-uint8_t *RotWord(uint8_t *temp)
+uint8_t *const &RotWord(uint8_t *const &temp)
 {
     std::cout << "Rotating the word: " << temp[0] << ", " << temp[1] << ", " << temp[2] << ", " << temp[3] << std::endl;
-    return new uint8_t[4]{
-        temp[1],
-        temp[2],
-        temp[3],
-        temp[0]};
+    uint8_t t = temp[0];
+    temp[0] = temp[1];
+    temp[1] = temp[2];
+    temp[2] = temp[3];
+    temp[3] = t;
+    return temp;
 }
 
 uint8_t *SubWord(uint8_t *temp)
@@ -98,7 +99,7 @@ void KeyExpansion()
         if (i % Nk == 0)
         {
             // Rotate and substitute the word
-            temp_word = SubWord(RotWord(temp_word));
+            SubWord(RotWord(temp_word));
             // xor the word, since only the first element in the round constant is non-zero,
             // it's enough to xor the first element of temp_word with the the corresponding element in Rcon
             temp_word[0] = temp_word[0] ^ Rcon[(i / Nk) - 1];
@@ -139,9 +140,7 @@ int main(int argc, char const *argv[])
     for (int i = 0; i < 16; i++)
     {
         plaintext[i] = temp_plaintext[i];
-
     }
-
 
     std::cout << "-------------------------------------------------" << std::endl;
 
