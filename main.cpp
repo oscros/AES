@@ -49,19 +49,41 @@ static const uint8_t *S_box = new uint8_t[16 * 16]{
 // 11 keys, first key is the original key, then 10 round keys
 uint8_t *key_schedule = new uint8_t[Nb * (Nr + 1)];
 
+// Rotate a word (column in the block)
+uint8_t *RotWord(uint8_t *temp)
+{
+    std::cout << "Rotating the word: " << temp[0] << ", " << temp[1] << ", " << temp[2] << ", " << temp[3] << std::endl;
+    return new uint8_t[4]{
+        temp[1],
+        temp[2],
+        temp[3],
+        temp[0]};
+}
+
+uint8_t *SubWord(uint8_t *temp)
+{
+    uint8_t *substituted_word = new uint8_t[Nk];
+    for (int i = 0; i < Nk; i++)
+    {
+        substituted_word[i] = S_box[temp[i]];
+    }
+    return substituted_word;
+}
+
 void KeyExpansion()
 {
-    uint8_t *temp_word = new uint8_t[4];
+    uint8_t *temp_word = new uint8_t[Nk];
 
     int i = 0;
 
     // first key is the original key
+    // i is the i:th word
     while (i < Nk)
     {
-        key_schedule[i] = key[4 * i];
-        key_schedule[i] = key[4 * (i + 1)];
-        key_schedule[i] = key[4 * (i + 2)];
-        key_schedule[i] = key[4 * (i + 3)];
+        key_schedule[(i * 4)] = key[i * 4];
+        key_schedule[(i * 4) + 1] = key[(i * 4) + 1];
+        key_schedule[(i * 4) + 2] = key[(i * 4) + 2];
+        key_schedule[(i * 4) + 3] = key[(i * 4) + 3];
         i++;
     }
 
@@ -69,13 +91,86 @@ void KeyExpansion()
     i = Nk;
     while (i < Nb * (Nr + 1))
     {
-        temp[]
+        temp_word[0] = key_schedule[4 * (i - 1)];
+        temp_word[1] = key_schedule[(4 * (i - 1)) + 1];
+        temp_word[2] = key_schedule[(4 * (i - 1)) + 2];
+        temp_word[3] = key_schedule[(4 * (i - 1)) + 3];
+        if (i % Nk == 0)
+        {
+            // Rotate and substitute the word
+            temp_word = SubWord(RotWord(temp_word));
+            // xor the word, since only the first element in the round constant is non-zero,
+            // it's enough to xor the first element of temp_word with the the corresponding element in Rcon
+            temp_word[0] = temp_word[0] ^ Rcon[(i / Nk) - 1];
+        }
+        key_schedule[4 * i] = key_schedule[(i - Nk) * 4] ^ temp_word[0];
+        key_schedule[(4 * i) + 1] = key_schedule[((i - Nk) * 4) + 1] ^ temp_word[1];
+        key_schedule[(4 * i) + 2] = key_schedule[((i - Nk) * 4) + 2] ^ temp_word[2];
+        key_schedule[(4 * i) + 3] = key_schedule[((i - Nk) * 4) + 3] ^ temp_word[3];
+        i++;
     }
-    
+    delete[] temp_word;
 }
 
 int main(int argc, char const *argv[])
 {
+    char *buf = new char[KEY_SIZE + PLAINTEXT_SIZE];
+    // cipher(argv[1]);
+
+    // std::ifstream myfile("aes_sample.in");
+    // myfile.read(buf, DEFAULT_BUF_LENGTH);
+    // int size = myfile.gcount();
+
+    std::cin.read(buf, KEY_SIZE + PLAINTEXT_SIZE);
+    int size = std::cin.gcount();
+    if (size == 0)
+        std::cout << "hello aes" << std::endl;
+
+    uint8_t *data = (uint8_t *)buf;
+    for (int i = 0; i < KEY_SIZE; i++)
+    {
+        key[i] = data[i];
+    }
+    uint8_t *temp_plaintext = new uint8_t[16];
+    for (int i = KEY_SIZE; i < size / sizeof(uint8_t); i++)
+    {
+        temp_plaintext[i - KEY_SIZE] = data[i];
+    }
+    for (int i = 0; i < 16; i++)
+    {
+        plaintext[i] = temp_plaintext[i];
+
+    }
+
+
+    std::cout << "-------------------------------------------------" << std::endl;
+
+    std::cout << "key: " << std::endl;
+    for (int i = 0; i < KEY_SIZE; i++)
+    {
+        std::cout << std::hex << static_cast<int>(data[i]) << " ";
+    }
+
+    std::cout << "\n-------------------------------------------------" << std::endl;
+
+    std::cout << "plaintext: " << std::endl;
+    for (int i = KEY_SIZE; i < size / sizeof(uint8_t) / sizeof(uint8_t); i++)
+    {
+        std::cout << std::hex << static_cast<int>(data[i]) << " ";
+    }
+
+    delete[] temp_plaintext;
+    delete[] data;
+
+    std::cout << "\n-------------------------------------------------" << std::endl;
+
+    KeyExpansion();
+
+    std::cout << "Expanded Key: " << std::endl;
+    for (int i = 0; i < Nb * (Nr + 1); i++)
+    {
+        std::cout << std::hex << static_cast<int>(key_schedule[i]) << " ";
+    }
 
     return 0;
 }
