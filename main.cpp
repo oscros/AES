@@ -61,14 +61,14 @@ uint8_t *const &RotWord(uint8_t *const &temp)
     return temp;
 }
 
-uint8_t *SubWord(uint8_t *temp)
+uint8_t *const &SubWord(uint8_t *const &temp)
 {
-    uint8_t *substituted_word = new uint8_t[Nk];
     for (int i = 0; i < Nk; i++)
     {
-        substituted_word[i] = S_box[temp[i]];
+        uint8_t substituted_val = S_box[temp[i]];
+        temp[i] = substituted_val;
     }
-    return substituted_word;
+    return temp;
 }
 
 void KeyExpansion()
@@ -90,7 +90,7 @@ void KeyExpansion()
 
     // Perform the expansion for the 10 round keys
     i = Nk;
-    while (i < Nb * (Nr + 1))
+    while (i < (Nb * (Nr + 1)) / 4)
     {
         temp_word[0] = key_schedule[4 * (i - 1)];
         temp_word[1] = key_schedule[(4 * (i - 1)) + 1];
@@ -102,12 +102,15 @@ void KeyExpansion()
             SubWord(RotWord(temp_word));
             // xor the word, since only the first element in the round constant is non-zero,
             // it's enough to xor the first element of temp_word with the the corresponding element in Rcon
-            temp_word[0] = temp_word[0] ^ Rcon[(i / Nk) - 1];
+            uint8_t t = temp_word[0];
+            temp_word[0] = t ^ Rcon[(i / Nk) - 1];
         }
         key_schedule[4 * i] = key_schedule[(i - Nk) * 4] ^ temp_word[0];
         key_schedule[(4 * i) + 1] = key_schedule[((i - Nk) * 4) + 1] ^ temp_word[1];
         key_schedule[(4 * i) + 2] = key_schedule[((i - Nk) * 4) + 2] ^ temp_word[2];
         key_schedule[(4 * i) + 3] = key_schedule[((i - Nk) * 4) + 3] ^ temp_word[3];
+
+        // next word is 4 indexes forward
         i++;
     }
     delete[] temp_word;
