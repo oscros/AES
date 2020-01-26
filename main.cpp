@@ -119,16 +119,13 @@ void KeyExpansion()
 int main(int argc, char const *argv[])
 {
     char *buf = new char[KEY_SIZE + PLAINTEXT_SIZE];
-    // cipher(argv[1]);
 
-    // std::ifstream myfile("aes_sample.in");
-    // myfile.read(buf, DEFAULT_BUF_LENGTH);
-    // int size = myfile.gcount();
+    // cin.read(char *buffer, int n): Reads n bytes (or until the end of the file) from the stream into the buffer.
 
     std::cin.read(buf, KEY_SIZE + PLAINTEXT_SIZE);
     int size = std::cin.gcount();
     if (size == 0)
-        std::cout << "hello aes" << std::endl;
+        std::cout << "no input!" << std::endl;
 
     uint8_t *data = (uint8_t *)buf;
     for (int i = 0; i < KEY_SIZE; i++)
@@ -136,7 +133,7 @@ int main(int argc, char const *argv[])
         key[i] = data[i];
     }
     uint8_t *temp_plaintext = new uint8_t[16];
-    for (int i = KEY_SIZE; i < size / sizeof(uint8_t); i++)
+    for (int i = KEY_SIZE; i < size; i++)
     {
         temp_plaintext[i - KEY_SIZE] = data[i];
     }
@@ -156,7 +153,7 @@ int main(int argc, char const *argv[])
     std::cout << "\n-------------------------------------------------" << std::endl;
 
     std::cout << "plaintext: " << std::endl;
-    for (int i = KEY_SIZE; i < size / sizeof(uint8_t) / sizeof(uint8_t); i++)
+    for (int i = KEY_SIZE; i < size; i++)
     {
         std::cout << std::hex << static_cast<int>(data[i]) << " ";
     }
