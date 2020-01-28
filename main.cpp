@@ -49,6 +49,15 @@ static const uint8_t *S_box = new uint8_t[16 * 16]{
 // 11 keys, first key is the original key, then 10 round keys
 uint8_t *key_schedule = new uint8_t[Nb * (Nr + 1)];
 
+// print a block
+void print_block(uint8_t const *const &block)
+{
+    for (int i = 0; i < Nk; i++)
+    {
+        std::cout << std::hex << static_cast<int>(block[i * 4]) << " " << static_cast<int>(block[i * 4 + 1]) << " " << static_cast<int>(block[i * 4 + 2]) << " " << static_cast<int>(block[i * 4 + 3]) << std::endl;
+    }
+}
+
 // Rotate a word (column in the block)
 uint8_t *const &RotWord(uint8_t *const &temp)
 {
@@ -116,6 +125,92 @@ void KeyExpansion()
     delete[] temp_word;
 }
 
+void AddRoundKey(uint8_t *const &state, int round_key)
+{
+    for (int i = 0; i < Nk; i++)
+    {
+        state[i * 4] = state[i * 4] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4)];
+        state[i * 4 + 1] = state[i * 4 + 1] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4) + 1];
+        state[i * 4 + 2] = state[i * 4 + 2] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4) + 2];
+        state[i * 4 + 3] = state[i * 4 + 3] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4) + 3];
+    }
+}
+
+void SubBytes(uint8_t *const &state)
+{
+    std::cout << "state BEFORE SubBytes" << std::endl;
+
+    print_block(state);
+
+    for (int i = 0; i < 4 * Nk; i++)
+    {
+        state[i] = S_box[state[i]];
+    }
+
+    std::cout << "state AFTER SubBytes" << std::endl;
+    print_block(state);
+}
+
+void ShiftRows(uint8_t *const &state)
+{
+    std::cout << "before" << std::endl;
+    print_block(state);
+    for (int i = 0; i < Nk; i++)
+    {
+        for (int j = 0; j < i; j++)
+        {
+            uint8_t *word = new uint8_t[4]{
+                state[i * 4],
+                state[i * 4 + 1],
+                state[i * 4 + 2],
+                state[i * 4 + 3]};
+            word = RotWord(word);
+            state[i * 4] = word[0];
+            state[i * 4 + 1] = word[1];
+            state[i * 4 + 2] = word[2];
+            state[i * 4 + 3] = word[3];
+        }
+    }
+    std::cout << "after" << std::endl;
+    print_block(state);
+}
+
+void MixColumns(uint8_t *const &state)
+{
+}
+
+uint8_t *Transpose(uint8_t const *const &block)
+{
+    uint8_t *transpose = new uint8_t[16];
+    // for (int i = 0; i < Nk; i++)
+    // {
+    //     transpose[i] = block[i];
+    //     transpose[i + 1] = block[4 + i];
+    //     transpose[i + 2] = block[8 + i];
+    //     transpose[i + 3] = block[12 + i];
+    // }
+    
+    return transpose;
+}
+
+uint8_t *Cipher(uint8_t *in)
+{
+    uint8_t *state = new uint8_t[4 * Nb];
+
+    // transpose the plaintext matrix as input
+    state = in;
+
+    AddRoundKey(state, 0);
+
+    for (int i = 1; i < Nr; i++)
+    {
+        SubBytes(state);
+        ShiftRows(state);
+        MixColumns(state);
+        AddRoundKey(state, i);
+    }
+}
+
 int main(int argc, char const *argv[])
 {
     char *buf = new char[KEY_SIZE + PLAINTEXT_SIZE];
@@ -170,6 +265,9 @@ int main(int argc, char const *argv[])
     {
         std::cout << std::hex << static_cast<int>(key_schedule[i]) << " ";
     }
+
+    print_block(plaintext);
+    print_block(Transpose(plaintext));
 
     return 0;
 }
