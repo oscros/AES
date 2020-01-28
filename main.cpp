@@ -214,6 +214,26 @@ void MixColumns(uint8_t *const &state)
     print_block(state);
 }
 
+void MixColumns2(uint8_t *const &state)
+{
+    std::cout << " ----- Before MixColumns2 ----- " << std::endl;
+    print_block(state);
+    for (int i = 0; i < Nk; i++)
+    {
+        uint8_t s0 = (2 * state[i]) + (3 * state[i + 4]) + state[i + 8] + state[i + 12];
+        uint8_t s1 = state[i] + (2 * state[i + 4]) + (3 * state[i + 8]) + state[i + 12];
+        uint8_t s2 = state[i] + state[i + 4] + (2 * state[i + 8]) + (3 * state[i + 12]);
+        uint8_t s3 = (3 * state[i]) + state[i + 4] + state[i + 8] + (2 * state[i + 12]);
+
+        state[i] = s0;
+        state[i + 4] = s1;
+        state[i + 8] = s2;
+        state[i + 12] = s3;
+    }
+    std::cout << " ----- After MixColumns2 ----- " << std::endl;
+    print_block(state);
+}
+
 uint8_t *Transpose(uint8_t const *const &block)
 {
     uint8_t *transpose = new uint8_t[16];
