@@ -4,7 +4,7 @@
 
 TEST_CASE("RotWord")
 {
-    uint8_t *word = new uint8_t[4] {0, 1, 2, 3};
+    uint8_t *word = new uint8_t[4]{0, 1, 2, 3};
     uint8_t *rotated_word = RotWord(word);
     REQUIRE(word[0] == rotated_word[0]);
     REQUIRE(word[1] == rotated_word[1]);
@@ -52,15 +52,28 @@ TEST_CASE("KeyExpansion")
 
     KeyExpansion();
 
-    std::cout << "Expanded Key: " << std::endl;
-    for (int i = 0; i < Nb * (Nr + 1); i++)
-    {
-        std::cout << std::hex << static_cast<int>(key_schedule[i]) << " ";
-    }
-    std::cout << "\n-------------------------------------------------" << std::endl;
+    // std::cout << "Expanded Key: " << std::endl;
+    // for (int i = 0; i < 4 * Nb * (Nr + 1); i++)
+    // {
+    //     std::cout << std::hex << static_cast<int>(key_schedule[i]) << " ";
+    //     std::cout << std::hex << static_cast<int>(key_schedule[i+1]) << " ";
+    //     std::cout << std::hex << static_cast<int>(key_schedule[i+2]) << " ";
+    //     std::cout << std::hex << static_cast<int>(key_schedule[i+3]) << " " << std::endl;
+    //     i = i + 3;
+    // }
+    // std::cout << "\n-------------------------------------------------" << std::endl;
     // SubWord(word);
     // REQUIRE(0x8a == word[0]);
     // REQUIRE(0x84 == word[1]);
     // REQUIRE(0xeb == word[2]);
     // REQUIRE(0x01 == word[3]);
+}
+
+TEST_CASE("AddRoundKey")
+{
+    // declare state and round key
+
+    // run addroundkey
+
+    // check that they are the same
 }

@@ -146,10 +146,10 @@ void AddRoundKey(uint8_t *const &state, int round_key)
     print_block(state);
     for (int i = 0; i < Nk; i++)
     {
-        state[i * 4] = state[i * 4] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4)];
-        state[i * 4 + 1] = state[i * 4 + 1] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4) + 1];
-        state[i * 4 + 2] = state[i * 4 + 2] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4) + 2];
-        state[i * 4 + 3] = state[i * 4 + 3] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4) + 3];
+        state[i] = state[i] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4)];
+        state[i + 4] = state[i + 4] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4) + 1];
+        state[i + 8] = state[i + 8] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4) + 2];
+        state[i + 12] = state[i + 12] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4) + 3];
     }
     std::cout << " ----- After AddRoundKey ----- " << std::endl;
     print_block(state);
