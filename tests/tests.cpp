@@ -77,3 +77,71 @@ TEST_CASE("AddRoundKey")
 
     // check that they are the same
 }
+
+TEST_CASE("Cipher")
+{
+
+    key[0] = 0x2b;
+    key[1] = 0x7e;
+    key[2] = 0x15;
+    key[3] = 0x16;
+
+    key[4] = 0x28;
+    key[5] = 0xae;
+    key[6] = 0xd2;
+    key[7] = 0xa6;
+
+    key[8] = 0xab;
+    key[9] = 0xf7;
+    key[10] = 0x15;
+    key[11] = 0x88;
+
+    key[12] = 0x09;
+    key[13] = 0xcf;
+    key[14] = 0x4f;
+    key[15] = 0x3c;
+
+    KeyExpansion();
+
+    plaintext[0] = 0x32;
+    plaintext[1] = 0x43;
+    plaintext[2] = 0xf6;
+    plaintext[3] = 0xa8;
+
+    plaintext[4] = 0x88;
+    plaintext[5] = 0x5a;
+    plaintext[6] = 0x30;
+    plaintext[7] = 0x8d;
+
+    plaintext[8] = 0x31;
+    plaintext[9] = 0x31;
+    plaintext[10] = 0x98;
+    plaintext[11] = 0xa2;
+
+    plaintext[12] = 0xe0;
+    plaintext[13] = 0x37;
+    plaintext[14] = 0x07;
+    plaintext[15] = 0x34;
+    std::cout << "------------- plaintext -------------" << std::endl;
+
+    print_block(plaintext);
+    uint8_t *state = Transpose(plaintext);
+    std::cout << "------------- start state -------------" << std::endl;
+
+    print_block(state);
+    // transpose the plaintext matrix as input
+    std::cout << "------------- START -------------" << std::endl;
+    AddRoundKey(state, 0);
+    print_block(state);
+    for (int i = 1; i < Nr; i++)
+    {
+        SubBytes(state);
+        ShiftRows(state);
+        MixColumns(state);
+        AddRoundKey(state, i);
+    }
+
+    SubBytes(state);
+    ShiftRows(state);
+    AddRoundKey(state, Nr);
+}
