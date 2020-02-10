@@ -195,43 +195,49 @@ void ShiftRows(uint8_t *const &state)
     print_block(state);
 }
 
-void MixColumns(uint8_t *const &state)
+/**
+ * Multiplies a and b in Galois field GF(2^8). 
+ * Based on pseudocode from https://en.wikipedia.org/wiki/Finite_field_arithmetic#Multiplication
+ * */
+uint8_t multiply_in_GF(uint8_t a, uint8_t b)
 {
-    std::cout << " ----- Before MixColumns ----- " << std::endl;
-    print_block(state);
-    for (int i = 0; i < Nk; i++)
-    {
-        uint8_t s0 = (2 * state[i]) ^ (3 * state[i + 4]) ^ state[i + 8] ^ state[i + 12];
-        uint8_t s1 = state[i] ^ (2 * state[i + 4]) ^ (3 * state[i + 8]) ^ state[i + 12];
-        uint8_t s2 = state[i] ^ state[i + 4] ^ (2 * state[i + 8]) ^ (3 * state[i + 12]);
-        uint8_t s3 = (3 * state[i]) ^ state[i + 4] ^ state[i + 8] ^ (2 * state[i + 12]);
+    uint8_t p = 0;
+    // std::cout << " ----- multiplying " << std::hex << static_cast<int>(a) << " and " << std::hex << static_cast<int>(b) << " ----- " << std::endl;
 
-        state[i] = s0;
-        state[i + 4] = s1;
-        state[i + 8] = s2;
-        state[i + 12] = s3;
+    for (int i = 0; i < 8; i++)
+    {
+        if (b & 1)
+        {
+            p = p ^ a;
+        }
+        b = b >> 1;
+        uint8_t carry = a & 0x80;
+        a = a << 1;
+        if (carry)
+        {
+            a = a ^ 0x1b;
+        }
     }
-    std::cout << " ----- After MixColumns ----- " << std::endl;
-    print_block(state);
+    return p;
 }
 
-void MixColumns2(uint8_t *const &state)
+void MixColumns(uint8_t *const &state)
 {
-    std::cout << " ----- Before MixColumns2 ----- " << std::endl;
+    std::cout << " ----- Before MixColumns5 ----- " << std::endl;
     print_block(state);
     for (int i = 0; i < Nk; i++)
     {
-        uint8_t s0 = (2 * state[i]) + (3 * state[i + 4]) + state[i + 8] + state[i + 12];
-        uint8_t s1 = state[i] + (2 * state[i + 4]) + (3 * state[i + 8]) + state[i + 12];
-        uint8_t s2 = state[i] + state[i + 4] + (2 * state[i + 8]) + (3 * state[i + 12]);
-        uint8_t s3 = (3 * state[i]) + state[i + 4] + state[i + 8] + (2 * state[i + 12]);
+        uint8_t s0 = multiply_in_GF(state[i], 0x02) ^ multiply_in_GF(state[i + 4] ,0x03) ^ state[i + 8] ^ state[i + 12];
+        uint8_t s1 = state[i] ^ multiply_in_GF(state[i + 4], 0x02) ^ multiply_in_GF(state[i + 8], 0x03) ^ state[i + 12];
+        uint8_t s2 = state[i] ^ state[i + 4] ^ multiply_in_GF(state[i + 8] ,0x02 ) ^ multiply_in_GF(state[i + 12], 0x03);
+        uint8_t s3 = multiply_in_GF(state[i], 0x03) ^ state[i + 4] ^ state[i + 8] ^ multiply_in_GF(state[i + 12], 0x02);
 
         state[i] = s0;
         state[i + 4] = s1;
         state[i + 8] = s2;
         state[i + 12] = s3;
     }
-    std::cout << " ----- After MixColumns2 ----- " << std::endl;
+    std::cout << " ----- After MixColumns5 ----- " << std::endl;
     print_block(state);
 }
 
@@ -265,8 +271,14 @@ uint8_t *Transpose(uint8_t const *const &block)
 uint8_t *Cipher(uint8_t *in)
 {
     // transpose the plaintext matrix as input
-    uint8_t *state = Transpose(in);
+    std::cout << "starting cipher" << std::endl;
+    std::cout << "--- in ---" << std::endl;
+    print_block(in);
 
+    uint8_t *state = Transpose(in);
+    std::cout << "--- state ---" << std::endl;
+
+    print_block(state);
     AddRoundKey(state, 0);
 
     for (int i = 1; i < Nr; i++)

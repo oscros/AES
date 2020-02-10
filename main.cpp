@@ -36,9 +36,6 @@ int main(int argc, char const *argv[])
     {
         std::cout << std::hex << static_cast<int>(data[i]) << " ";
     }
-    uint8_t *key_t = Transpose(key);
-    delete[] key;
-    key = key_t;
     std::cout << "key: " << std::endl;
 
     print_block(key);
