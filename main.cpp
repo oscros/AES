@@ -6,7 +6,7 @@
 // given key in the kattis assignment is 16 bytes long
 static const int KEY_SIZE = 16;
 // plaintext is at most 10e6 according to kattis
-static const int PLAINTEXT_SIZE = 16 * 10 ^ 6;
+static const int PLAINTEXT_SIZE = 16 * 1000000;
 
 // According to the specification: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
 // Number  of  columns  (32-bit  words)  comprising  the  State.  For  this  standard, Nb = 4.
@@ -302,73 +302,86 @@ int main(int argc, char const *argv[])
 
     std::cin.read(buf, KEY_SIZE + PLAINTEXT_SIZE);
     int size = std::cin.gcount();
+    // std::cout << "size: " << size << std::endl;
+    // std::cout << "size - KEY_SIZE: " << size - KEY_SIZE << std::endl;
+    // std::cout << "KEY_SIZE + PLAINTEXT_SIZE: " << KEY_SIZE + PLAINTEXT_SIZE << std::endl;
+
     if (size == 0)
-        std::cout << "no input!" << std::endl;
+        std::cerr
+            << "no input!" << std::endl;
 
     uint8_t *data = (uint8_t *)buf;
     for (int i = 0; i < KEY_SIZE; i++)
     {
         key[i] = data[i];
     }
-    uint8_t *temp_plaintext = new uint8_t[16];
+    uint8_t *temp_plaintext = new uint8_t[size - KEY_SIZE];
     for (int i = KEY_SIZE; i < size; i++)
     {
         temp_plaintext[i - KEY_SIZE] = data[i];
     }
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < size - KEY_SIZE; i++)
     {
         plaintext[i] = temp_plaintext[i];
     }
 
-    // std::cout << "-------------------------------------------------" << std::endl;
-
-    // std::cout << "key: " << std::endl;
-    for (int i = 0; i < KEY_SIZE; i++)
-    {
-        // std::cout << std::hex << static_cast<int>(data[i]) << " ";
-    }
-    // std::cout << "key: " << std::endl;
-
-    // print_block(key);
-
-    // std::cout << "\n-------------------------------------------------" << std::endl;
-
     // std::cout << "plaintext: " << std::endl;
-    for (int i = KEY_SIZE; i < size; i++)
-    {
-        // std::cout << std::hex << static_cast<int>(data[i]) << " ";
-    }
-    // std::cout << "plaintext: " << std::endl;
+    // for (int i = 0; i < (size - KEY_SIZE) / 16; i++)
+    // {
+    //     for (int j = 0; j < 16; j++)
+    //     {
+    //         std::cout << std::hex << static_cast<int>(plaintext[i * 16 + j]) << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
 
     // print_block(plaintext);
 
     delete[] temp_plaintext;
     delete[] data;
 
-    // std::cout << "\n-------------------------------------------------" << std::endl;
-
     KeyExpansion();
 
-    // std::cout << "Expanded Key: " << std::endl;
-    for (int i = 0; i < Nb * (Nr + 1); i++)
-    {
-        // std::cout << std::hex << static_cast<int>(key_schedule[i]) << " ";
-    }
-    // std::cout << "\n-------------------------------------------------" << std::endl;
-
     // std::cout << "--------------- plaintext ---------------" << std::endl;
-    uint8_t *c = Cipher(plaintext);
-    // std::cout << "--------------- cipher ---------------" << std::endl;
-    for (int i = 0; i < 4; i++)
+
+    uint8_t *result = new uint8_t[size - KEY_SIZE];
+
+    for (int i = 0; i < (size - KEY_SIZE) / 16; i++)
     {
-        std::cout << std::hex << c[i];
-        std::cout << std::hex << c[i + 4];
-        std::cout << std::hex << c[i + 8];
-        std::cout << std::hex << c[i + 12];
+        uint8_t *block = new uint8_t[16];
+        for (int j = 0; j < 16; j++)
+        {
+            block[j] = plaintext[i * 16 + j];
+        }
+        uint8_t *temp = Cipher(block);
+        uint8_t *cipher = Transpose(temp);
+        for (int j = 0; j < 16; j++)
+        {
+            result[i * 16 + j] = cipher[j];
+        }
+        delete[] temp;
+        delete[] block;
+        delete[] cipher;
     }
+
+    for (int i = 0; i < size - KEY_SIZE; i++)
+    {
+        std::cout << std::hex << result[i];
+    }
+
+    // uint8_t *c = Cipher(plaintext);
+    // // std::cout << "--------------- cipher ---------------" << std::endl;
+    // for (int i = 0; i < 4; i++)
+    // {
+    //     std::cout << std::hex << c[i];
+    //     std::cout << std::hex << c[i + 4];
+    //     std::cout << std::hex << c[i + 8];
+    //     std::cout << std::hex << c[i + 12];
+    // }
 
     // print_block(c);
-    delete[] c;
+    // delete[] c;
+    delete[] result;
     delete[] state;
     delete[] key;
     delete[] key_schedule;
