@@ -54,7 +54,7 @@ uint8_t *key_schedule = new uint8_t[4 * Nb * (Nr + 1)];
 void print_word(uint8_t const *const &word)
 {
 
-    std::cout << std::hex << static_cast<int>(word[0]) << " " << static_cast<int>(word[1]) << " " << static_cast<int>(word[2]) << " " << static_cast<int>(word[3]) << std::endl;
+  std::cout << std::hex << static_cast<int>(word[0]) << " " << static_cast<int>(word[1]) << " " << static_cast<int>(word[2]) << " " << static_cast<int>(word[3]) << std::endl;
 }
 
 // print a block
@@ -73,15 +73,15 @@ void print_block(uint8_t const *const &block)
 // Rotate a word (column in the block)
 uint8_t *const &RotWord(uint8_t *const &temp)
 {
-    std::cout << " ----- Before rotation ----- " << std::endl;
-    print_word(temp);
+  // std::cout << " ----- Before rotation ----- " << std::endl;
+    // print_word(temp);
     uint8_t t = temp[0];
     temp[0] = temp[1];
     temp[1] = temp[2];
     temp[2] = temp[3];
     temp[3] = t;
-    std::cout << " ----- After rotation ----- " << std::endl;
-    print_word(temp);
+  // std::cout << " ----- After rotation ----- " << std::endl;
+    // print_word(temp);
     return temp;
 }
 
@@ -142,8 +142,8 @@ void KeyExpansion()
 
 void AddRoundKey(uint8_t *const &state, int round_key)
 {
-    std::cout << " ----- Before AddRoundKey ----- " << std::endl;
-    print_block(state);
+  // std::cout << " ----- Before AddRoundKey ----- " << std::endl;
+  // print_block(state);
     for (int i = 0; i < Nk; i++)
     {
         state[i] = state[i] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4)];
@@ -151,29 +151,29 @@ void AddRoundKey(uint8_t *const &state, int round_key)
         state[i + 8] = state[i + 8] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4) + 2];
         state[i + 12] = state[i + 12] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4) + 3];
     }
-    std::cout << " ----- After AddRoundKey ----- " << std::endl;
-    print_block(state);
+  // std::cout << " ----- After AddRoundKey ----- " << std::endl;
+  // print_block(state);
 }
 
 void SubBytes(uint8_t *const &state)
 {
-    std::cout << " ----- Before SubBytes ----- " << std::endl;
+  // std::cout << " ----- Before SubBytes ----- " << std::endl;
 
-    print_block(state);
+  // print_block(state);
 
     for (int i = 0; i < 4 * Nk; i++)
     {
         state[i] = S_box[state[i]];
     }
 
-    std::cout << " ----- Before SubBytes ----- " << std::endl;
-    print_block(state);
+  // std::cout << " ----- Before SubBytes ----- " << std::endl;
+  // print_block(state);
 }
 
 void ShiftRows(uint8_t *const &state)
 {
-    std::cout << " ----- Before ShiftRows ----- " << std::endl;
-    print_block(state);
+  // std::cout << " ----- Before ShiftRows ----- " << std::endl;
+  // print_block(state);
     for (int i = 0; i < Nk; i++)
     {
         for (int j = 0; j < i; j++)
@@ -191,8 +191,8 @@ void ShiftRows(uint8_t *const &state)
             delete[] word;
         }
     }
-    std::cout << " ----- After ShiftRows ----- " << std::endl;
-    print_block(state);
+  // std::cout << " ----- After ShiftRows ----- " << std::endl;
+  // print_block(state);
 }
 
 /**
@@ -223,8 +223,8 @@ uint8_t multiply_in_GF(uint8_t a, uint8_t b)
 
 void MixColumns(uint8_t *const &state)
 {
-    std::cout << " ----- Before MixColumns5 ----- " << std::endl;
-    print_block(state);
+  // std::cout << " ----- Before MixColumns5 ----- " << std::endl;
+  // print_block(state);
     for (int i = 0; i < Nk; i++)
     {
         uint8_t s0 = multiply_in_GF(state[i], 0x02) ^ multiply_in_GF(state[i + 4] ,0x03) ^ state[i + 8] ^ state[i + 12];
@@ -237,8 +237,8 @@ void MixColumns(uint8_t *const &state)
         state[i + 8] = s2;
         state[i + 12] = s3;
     }
-    std::cout << " ----- After MixColumns5 ----- " << std::endl;
-    print_block(state);
+  // std::cout << " ----- After MixColumns5 ----- " << std::endl;
+  // print_block(state);
 }
 
 uint8_t *Transpose(uint8_t const *const &block)
@@ -271,14 +271,14 @@ uint8_t *Transpose(uint8_t const *const &block)
 uint8_t *Cipher(uint8_t *in)
 {
     // transpose the plaintext matrix as input
-    std::cout << "starting cipher" << std::endl;
-    std::cout << "--- in ---" << std::endl;
-    print_block(in);
+  // std::cout << "starting cipher" << std::endl;
+  // std::cout << "--- in ---" << std::endl;
+  // print_block(in);
 
     uint8_t *state = Transpose(in);
-    std::cout << "--- state ---" << std::endl;
+  // std::cout << "--- state ---" << std::endl;
 
-    print_block(state);
+  // print_block(state);
     AddRoundKey(state, 0);
 
     for (int i = 1; i < Nr; i++)
