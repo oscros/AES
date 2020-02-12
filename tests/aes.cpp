@@ -6,7 +6,7 @@
 // given key in the kattis assignment is 16 bytes long
 static const int KEY_SIZE = 16;
 // plaintext is at most 10e6 according to kattis
-static const int PLAINTEXT_SIZE = 16 * 10 ^ 6;
+static const int PLAINTEXT_SIZE = 16 * 1000000;
 
 // According to the specification: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
 // Number  of  columns  (32-bit  words)  comprising  the  State.  For  this  standard, Nb = 4.
@@ -20,15 +20,12 @@ static const int Nr = 10;
 uint8_t *key = new uint8_t[KEY_SIZE];
 // plaintext
 uint8_t *plaintext = new uint8_t[PLAINTEXT_SIZE];
-// state matrix
-uint8_t *state = new uint8_t[4 * Nb];
 
 // round constant word array (found here: https://en.wikipedia.org/wiki/AES_key_schedule)
 static const uint8_t *Rcon = new uint8_t[10]{
     0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36};
 
 static const uint8_t *S_box = new uint8_t[16 * 16]{
-    //0     1    2      3     4    5     6     7      8    9     A      B    C     D     E     F
     0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
     0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
     0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15,
@@ -49,14 +46,17 @@ static const uint8_t *S_box = new uint8_t[16 * 16]{
 // 11 keys, first key is the original key, then 10 round keys
 uint8_t *key_schedule = new uint8_t[4 * Nb * (Nr + 1)];
 
-// print a word
+/**
+ * Prints the given word
+ * */
 void print_word(uint8_t const *const &word)
 {
-
     std::cout << std::hex << static_cast<int>(word[0]) << " " << static_cast<int>(word[1]) << " " << static_cast<int>(word[2]) << " " << static_cast<int>(word[3]) << std::endl;
 }
 
-// print a block
+/**
+ * Prints the given block
+ * */
 void print_block(uint8_t const *const &block)
 {
     for (int i = 0; i < Nk; i++)
@@ -64,26 +64,25 @@ void print_block(uint8_t const *const &block)
         uint8_t *temp_word = new uint8_t[4]{block[i * 4], block[i * 4 + 1], block[i * 4 + 2], block[i * 4 + 3]};
         print_word(temp_word);
         delete[] temp_word;
-        // std::cout
-        //     << std::hex << static_cast<int>(block[i * 4]) << " " << static_cast<int>(block[i * 4 + 1]) << " " << static_cast<int>(block[i * 4 + 2]) << " " << static_cast<int>(block[i * 4 + 3]) << std::endl;
     }
 }
 
-// Rotate a word (column in the block)
+/**
+ * Rotates a word left one step
+ * */
 uint8_t *const &RotWord(uint8_t *const &temp)
 {
-    // std::cout << " ----- Before rotation ----- " << std::endl;
-    // print_word(temp);
     uint8_t t = temp[0];
     temp[0] = temp[1];
     temp[1] = temp[2];
     temp[2] = temp[3];
     temp[3] = t;
-    // std::cout << " ----- After rotation ----- " << std::endl;
-    // print_word(temp);
     return temp;
 }
 
+/**
+ * Substitutes each value in a word with the corresponding value in the S_box
+ * */
 uint8_t *const &SubWord(uint8_t *const &temp)
 {
     for (int i = 0; i < Nk; i++)
@@ -94,6 +93,9 @@ uint8_t *const &SubWord(uint8_t *const &temp)
     return temp;
 }
 
+/**
+ * Performs Key Expansion and fills out the key_schedule with keys for all rounds 
+ * */
 void KeyExpansion()
 {
     uint8_t *temp_word = new uint8_t[Nk];
@@ -133,16 +135,17 @@ void KeyExpansion()
         key_schedule[(4 * i) + 2] = key_schedule[((i - Nk) * 4) + 2] ^ temp_word[2];
         key_schedule[(4 * i) + 3] = key_schedule[((i - Nk) * 4) + 3] ^ temp_word[3];
 
-        // next word is 4 indexes forward
+        // go to the next word
         i++;
     }
     delete[] temp_word;
 }
 
+/**
+ * xor's the given state with the current round key, column by column
+ * */
 void AddRoundKey(uint8_t *const &state, int round_key)
 {
-    // std::cout << " ----- Before AddRoundKey ----- " << std::endl;
-    // print_block(state);
     for (int i = 0; i < Nk; i++)
     {
         state[i] = state[i] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4)];
@@ -150,29 +153,28 @@ void AddRoundKey(uint8_t *const &state, int round_key)
         state[i + 8] = state[i + 8] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4) + 2];
         state[i + 12] = state[i + 12] ^ key_schedule[(round_key * KEY_SIZE) + (i * 4) + 3];
     }
-    // std::cout << " ----- After AddRoundKey ----- " << std::endl;
-    // print_block(state);
 }
 
+/**
+ * Substitutes each value in the given state with its corresponding value in the substitutaion box
+ * */
 void SubBytes(uint8_t *const &state)
 {
-    // std::cout << " ----- Before SubBytes ----- " << std::endl;
-
-    // print_block(state);
-
     for (int i = 0; i < 4 * Nk; i++)
     {
         state[i] = S_box[state[i]];
     }
-
-    // std::cout << " ----- Before SubBytes ----- " << std::endl;
-    // print_block(state);
 }
 
+/**
+ * Shifts each row 0, 1, 2 or 3 positions to the left.
+ *  - row 0, shifts 0 positions to left
+ *  - row 1, shifts 1 positions to left
+ *  - row 2, shifts 2 positions to left
+ *  - row 3, shifts 3 positions to left
+ * */
 void ShiftRows(uint8_t *const &state)
 {
-    // std::cout << " ----- Before ShiftRows ----- " << std::endl;
-    // print_block(state);
     for (int i = 0; i < Nk; i++)
     {
         for (int j = 0; j < i; j++)
@@ -190,8 +192,6 @@ void ShiftRows(uint8_t *const &state)
             delete[] word;
         }
     }
-    // std::cout << " ----- After ShiftRows ----- " << std::endl;
-    // print_block(state);
 }
 
 /**
@@ -200,16 +200,17 @@ void ShiftRows(uint8_t *const &state)
  * */
 uint8_t multiply_in_GF(uint8_t a, uint8_t b)
 {
-    uint8_t p = 0;
-    // std::cout << " ----- multiplying " << std::hex << static_cast<int>(a) << " and " << std::hex << static_cast<int>(b) << " ----- " << std::endl;
+    uint8_t product = 0;
 
     for (int i = 0; i < 8; i++)
     {
         if (b & 1)
         {
-            p = p ^ a;
+            product = product ^ a;
         }
         b = b >> 1;
+
+        // carry is the leftmost bit in a
         uint8_t carry = a & 0x80;
         a = a << 1;
         if (carry)
@@ -217,13 +218,21 @@ uint8_t multiply_in_GF(uint8_t a, uint8_t b)
             a = a ^ 0x1b;
         }
     }
-    return p;
+    return product;
 }
 
+/**
+ * Mix the columns in the state by performing multiplication in Galois field GF(2^8) 
+ * between the state each column and the following matrix
+ * 
+ * 02 03 01 01 
+ * 01 02 03 01 
+ * 01 01 02 03
+ * 03 01 01 02
+ * 
+ * */
 void MixColumns(uint8_t *const &state)
 {
-    // std::cout << " ----- Before MixColumns5 ----- " << std::endl;
-    // print_block(state);
     for (int i = 0; i < Nk; i++)
     {
         uint8_t s0 = multiply_in_GF(state[i], 0x02) ^ multiply_in_GF(state[i + 4], 0x03) ^ state[i + 8] ^ state[i + 12];
@@ -236,10 +245,12 @@ void MixColumns(uint8_t *const &state)
         state[i + 8] = s2;
         state[i + 12] = s3;
     }
-    // std::cout << " ----- After MixColumns5 ----- " << std::endl;
-    // print_block(state);
 }
 
+/**
+ * Transpose the given block
+ * Assumes the input is a 4 * 4 matrix
+ * */
 uint8_t *Transpose(uint8_t const *const &block)
 {
     uint8_t *transpose = new uint8_t[16];
@@ -267,17 +278,13 @@ uint8_t *Transpose(uint8_t const *const &block)
     return transpose;
 }
 
+/**
+ * Takes a block as input, encrypts it and returns the ciphertext 
+ * */
 uint8_t *Cipher(uint8_t *in)
 {
-    // transpose the plaintext matrix as input
-    // std::cout << "starting cipher" << std::endl;
-    // std::cout << "--- in ---" << std::endl;
-    // print_block(in);
-
     uint8_t *state = Transpose(in);
-    // std::cout << "--- state ---" << std::endl;
 
-    // print_block(state);
     AddRoundKey(state, 0);
 
     for (int i = 1; i < Nr; i++)
