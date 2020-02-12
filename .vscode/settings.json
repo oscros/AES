@@ -33,6 +33,11 @@
         "xtr1common": "cpp",
         "xutility": "cpp",
         "iterator": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "*.tcc": "cpp",
+        "cctype": "cpp",
+        "clocale": "cpp",
+        "cstdarg": "cpp",
+        "cwctype": "cpp"
     }
 }
